@@ -1,0 +1,59 @@
+---
+title: "healthcare_hw3_q2"
+author: "Qingyue Su"
+date: "11/18/2019"
+output: html_document
+---
+```{r}
+#(1)install packages
+#install.packages("dplyr")
+#install.packages("readr")
+#install.packages("sandwich")
+#install.packages("readxl")
+#install.packages("data.table")
+
+library(readr)
+library(dplyr)
+library(sandwich)
+library(readxl)
+library(data.table)
+```
+
+```{r}
+#(2)import data
+# import data - Inpatient
+VTINP16_upd <- read.csv("~/Desktop/semester1/healthcare/assignment/Assignment3/VTINP16_upd.TXT")
+#View(VTINP16_upd)
+#glimpse(VTINP16_upd)
+#(3)filter data
+Inpatient1 <- VTINP16_upd %>% filter(PPAY %in% c(1)) %>% select(9, 77)
+Inpatient1$INSURANCE <- "MEDICARE"
+#View(Inpatient1)
+Inpatient2 <- VTINP16_upd %>% filter(PPAY %in% c(2)) %>% select(9, 77)
+Inpatient2$INSURANCE <- "MEDICAID"
+#View(Inpatient2)
+Inpatient3 <- VTINP16_upd %>% filter(PPAY %in% c(6, 7)) %>% select(9, 77)
+Inpatient3$INSURANCE <- "COMMERCIAL PAYERS"
+#View(Inpatient3)
+Inpatient0 <- rbind(Inpatient1, Inpatient2, Inpatient3)
+#View(Inpatient0)
+#change MDC to character
+MDC_explain <- read_excel("MDC_explain.xlsx")
+#View(MDC_explain)  
+Inpatient <- merge(Inpatient0, MDC_explain, by = "MDC")
+Inpatient <- na.omit(Inpatient)
+View(Inpatient) 
+```
+
+```{r}
+#(4) draw cross table
+#Set group
+Inpatient <- Inpatient %>% group_by(INSURANCE, MDC, MDC_CAT_NAME) %>% summarise(sum(CHRGS))
+Inpatient$`sum(CHRGS)` <- round((Inpatient$`sum(CHRGS)`/1000000), 0)
+Inpatient <- na.omit(Inpatient)
+View(Inpatient)
+#Establish table
+charge_table <- dcast(Inpatient, MDC + MDC_CAT_NAME ~ INSURANCE)
+View(charge_table)
+#fwrite(charge_table, file = "~/Desktop/semester1/healthcare/assignment/Assignment3/Inpatient.CSV")
+```

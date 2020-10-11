@@ -1,0 +1,232 @@
+---
+title: "healtcare ass3"
+output: html_document
+---
+
+```{r}
+library(data.table)
+library(dplyr)
+```
+#病人資料
+```{r}
+patient_1585831_ED <- VTED16 %>%
+  filter(VTED16$UNIQ == 1585831)
+View(patient_1585831_ED)
+
+patient_1585831_IN <- VTINP16_upd  %>%
+  filter(VTINP16_upd$UNIQ == 1585831)
+View(patient_1585831_IN)
+
+patient_1585831 <- VTREVCODE16 %>%
+  filter(VTREVCODE16$Uniq == 1585831)
+View(patient_1585831)
+
+```
+
+```{r}
+three_commercial_company <- VTINP16_upd %>%
+  filter(VTINP16_upd$PPAY %in% c(1,2,6,7))
+View(three_commercial_company)
+```
+
+
+```{r}
+MEDICARE_1 <- three_commercial_company %>%
+  filter(three_commercial_company$PPAY == 1) 
+MEDICARE_1 <- MEDICARE_1 %>%  
+  filter(MEDICARE_1$MDC != "NA")
+MEDICARE_1 <- MEDICARE_1%>%  
+  group_by(as.factor(MEDICARE_1$MDC)) %>%
+  arrange(MEDICARE_1$MDC)
+View(MEDICARE_1)
+```
+
+
+
+```{r}
+MEDICARE_sum <- MEDICARE_1 %>%
+  group_by(MDC) %>%
+  filter(CHRGS != "NA") %>%
+  summarise(MEDICARE=round(sum(CHRGS)/1000000,0)) %>%
+  arrange(MDC)
+View(MEDICARE_sum)
+```
+
+
+```{r}
+MEDICAID <- three_commercial_company %>%
+  filter(three_commercial_company$PPAY == 2) 
+MEDICAID <- MEDICAID %>%
+  filter(MEDICAID$MDC != "NA")
+MEDICAID <- MEDICAID%>%  
+  group_by(as.factor(MEDICAID$MDC)) %>%
+  arrange(MEDICAID$MDC)
+View(MEDICAID)
+```
+
+
+```{r}
+MEDICAID_sum <- MEDICAID %>%
+  group_by(MDC) %>%
+  filter(CHRGS != "NA") %>%
+  summarise(MEDICAID=round(sum(CHRGS)/1000000,0)) %>%
+  arrange(MDC)
+View(MEDICAID_sum)
+```
+
+```{r}
+BLUE_COMM <- three_commercial_company %>%
+  filter(three_commercial_company$PPAY == c(6,7)) 
+BLUE_COMM<- BLUE_COMM %>%
+  filter(BLUE_COMM$MDC != "NA")
+BLUE_COMM <- BLUE_COMM%>%  
+  group_by(as.factor(BLUE_COMM$MDC)) %>%
+  arrange(BLUE_COMM$MDC)
+View(BLUE_COMM)
+```
+
+```{r}
+BLUE_COMM_sum <-BLUE_COMM %>%
+  group_by(MDC) %>%
+  filter(CHRGS != "NA") %>%
+  summarise(BLUE_COMM=round(sum(CHRGS)/1000000,0)) %>%
+  arrange(MDC)
+View(BLUE_COMM_sum)
+```
+
+
+```{r}
+BLUE_MEDICAID <-merge(BLUE_COMM_sum,MEDICAID_sum, by="MDC")
+View(BLUE_MEDICAID)
+
+THREE <- merge(BLUE_MEDICAID,MEDICARE_sum, by="MDC")
+View(THREE)
+```
+
+
+
+
+#按照性別
+
+```{r}
+MEDICAID_sex <- MEDICAID %>%
+  group_by(MDC,sex) %>%
+  filter(sex != "NA") %>%
+  count(sex) %>%
+  arrange(MDC)
+View(MEDICAID_sex)
+```
+
+```{r}
+MEDICAID_sex <- MEDICAID %>%
+  group_by(sex) %>%
+  filter(sex != "NA") %>%
+  count(sex) %>%
+  arrange(sex)
+View(MEDICAID_sex)
+```
+
+
+```{r}
+MEDICARE_sex <- MEDICARE %>%
+  group_by(MDC,sex) %>%
+  filter(sex != "NA") %>%
+  count(sex) %>%
+  arrange(MDC)
+View(MEDICARE_sex)
+```
+
+```{r}
+MEDICARE_sex <- MEDICARE %>%
+  group_by(sex) %>%
+  filter(sex != "NA") %>%
+  count(sex) %>%
+  arrange(sex)
+View(MEDICARE_sex)
+```
+
+
+
+```{r}
+BLUE_COMM_sex <- BLUE_COMM %>%
+  group_by(MDC,sex) %>%
+  filter(sex != "NA") %>%
+  count(sex) %>%
+  arrange(MDC)
+View(BLUE_COMM_sex)
+```
+
+
+#按照年齡
+```{r}
+MEDICARE_age <- MEDICARE %>%
+  group_by(MDC,intage) %>%
+  filter(intage != "NA") %>%
+  count(intage) %>%
+  arrange(MDC)
+View(MEDICARE_age)
+```
+
+```{r}
+MEDICARE_age <- MEDICARE %>%
+  group_by(intage) %>%
+  filter(intage != "NA") %>%
+  count(intage) %>%
+  arrange(intage)
+View(MEDICARE_age)
+```
+
+
+```{r}
+MEDICAID_age <- MEDICAID %>%
+  group_by(MDC,intage) %>%
+  filter(intage != "NA") %>%
+  count(intage) %>%
+  arrange(MDC)
+View(MEDICAID_age)
+```
+
+```{r}
+BLUE_COMM_age <- BLUE_COMM %>%
+  group_by(MDC,intage) %>%
+  filter(intage != "NA") %>%
+  count(intage) %>%
+  arrange(MDC)
+View(BLUE_COMM_age)
+```
+
+
+
+```{r}
+library(data.table)
+fwrite(MEDICARE_sum, file = "/Users/hsiangyao/Documents/healthcare3/MEDICARE.csv")
+```
+＃以下是非常慘烈的圓餅圖 
+```{r}
+pct <- round(MEDICARE_sum$MEDICARE/sum(MEDICARE_sum$MEDICARE)*100)
+lbls <- paste(MEDICARE_sum$MDC, pct) # add percents to labels
+lbls <- paste(lbls,"%",sep="") # ad % to labels
+pie(MEDICARE_sum$MEDICARE, labels = lbls, main="Pie Chart of MEDICARE")
+```
+
+
+
+
+
+```{r}
+pct <- round(MEDICAID_sum$MEDICAID/sum(MEDICAID_sum$MEDICAID)*100)
+lbls <- paste(MEDICAID_sum$MDC, pct) # add percents to labels
+lbls <- paste(lbls,"%",sep="") # ad % to labels
+pie(MEDICAID_sum$MEDICAID, labels = lbls, main="Pie Chart of MEDICAID")
+
+```
+
+```{r}
+pct <- round(BLUE_COMM_sum$BLUE_COMM/sum(BLUE_COMM_sum$BLUE_COMM)*100)
+lbls <- paste(BLUE_COMM_sum$MDC, pct) # add percents to labels
+lbls <- paste(lbls,"%",sep="") # ad % to labels
+pie(BLUE_COMM_sum$BLUE_COMM, labels = lbls, main="Pie Chart of Blue Cross and Commercial Insurance")
+
+
+```
+
