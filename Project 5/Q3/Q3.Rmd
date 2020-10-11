@@ -1,0 +1,36 @@
+---
+title: "Relationship between education and health"
+author: "Henry"
+date: "3/28/2020"
+output: html_document
+---
+
+## import packages and initialize datasets
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(reshape2)
+library(tidyverse)
+
+puf2016 <- read.csv('./MCBSpuf2016/puf2016.csv')
+```
+
+## Fisher's Exact Test for HLT_BMI_CAT and DEM_EDU
+
+```{r}
+puf2016.use <- puf2016[c('PUF_ID', 'HLT_BMI_CAT', 'DEM_EDU')]
+
+puf2016.use <- within(puf2016.use, {
+  HLT_BMI_CAT[HLT_BMI_CAT>=4] <- 'Obesity' 
+  HLT_BMI_CAT[HLT_BMI_CAT<4] <- 'Healthy'
+  DEM_EDU[DEM_EDU %in% c('D', 'N', 'R')] <- NA
+  DEM_EDU <- as.integer(DEM_EDU)
+  DEM_EDU[DEM_EDU==3] <- 'Highly Educated'
+  DEM_EDU[DEM_EDU<3] <- 'Less Educated'}
+)
+
+ftable <- dcast(na.omit(puf2016.use), HLT_BMI_CAT ~ DEM_EDU, length)
+ftable <- data.frame(ftable[2:3], row.names = ftable$HLT_BMI_CAT)
+ftable
+fisher.test(ftable)
+```
+

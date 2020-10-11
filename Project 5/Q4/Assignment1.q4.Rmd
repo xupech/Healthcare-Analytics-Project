@@ -1,0 +1,41 @@
+---
+title: "Assignment_1.4_Obesity depression"
+author: "Haina Yan"
+date: "3/28/2020"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+puf <- read.csv("~/Desktop/puf2016.csv")
+# import survey data.
+```
+
+
+
+```{r}
+puf.4<-puf[c("PUF_ID","HLT_OCDEPRSS","HLT_BMI_CAT")]
+
+puf.o <- puf.4 %>% filter(HLT_BMI_CAT>=4)
+puf.n <- puf.4 %>% filter(HLT_BMI_CAT<=3)
+
+puf.o1 <- puf.o %>% filter(HLT_OCDEPRSS==1)
+puf.o2 <- puf.o %>% filter(HLT_OCDEPRSS==2)
+puf.n1 <- puf.n %>% filter(HLT_OCDEPRSS==1)
+puf.n2 <- puf.n %>% filter(HLT_OCDEPRSS==2)
+
+# filter Obesity/Depression to puf.o1; Obesity/No-Depression to puf.o2; 
+# No-Obesity/Depression to puf.n1;  No-Obesity/No-Depression to puf.n2
+
+d4=matrix(c(nrow(puf.o1), nrow(puf.o2), nrow(puf.n1), nrow(puf.n2)), 2,2,
+         dimnames = list(c('Depression', 'No-Depression'), c('Obesity', 'NO-Obesity')))
+
+# Construct a 2*2 matrix.
+d4
+fisher.test(d4)
+```
+
+
+
+
+

@@ -1,0 +1,41 @@
+---
+title: "Assignment_1.1_Racial disparity"
+author: "Pengcheng Xu"
+date: "3/23/2020"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+puf <- read.csv("./puf2016.csv")
+# import survey data.
+```
+
+
+```{r}
+puf <- puf %>% filter(ADM_H_MEDSTA==1)
+
+puf.w <- puf %>% filter(DEM_RACE==1)
+puf.b <- puf %>% filter(DEM_RACE==2)
+
+puf.w <- puf.w %>% filter(ACC_HCDELAY %in% c(1,2))
+puf.b <- puf.b %>% filter(ACC_HCDELAY %in% c(1,2))
+
+puf.w1 <- puf.w %>% filter(ACC_HCDELAY==1)
+puf.w2 <- puf.w %>% filter(ACC_HCDELAY==2)
+puf.b1 <- puf.b %>% filter(ACC_HCDELAY==1)
+puf.b2 <- puf.b %>% filter(ACC_HCDELAY==2)
+
+# filter white/delayed to puf.w1; white/not-delayed to puf.w2; black/delayed to puf.b1; black/not-delayed to puf.b2.
+```
+
+```{r}
+d=matrix(c(nrow(puf.w1), nrow(puf.w2), nrow(puf.b1), nrow(puf.b2)), 2,2,
+         dimnames = list(c('Delayed', 'No-Delay'), c('White', 'Black')))
+# Construct a 2*2 matrix.
+d
+```
+
+```{r}
+fisher.test(d)
+```

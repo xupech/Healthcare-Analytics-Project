@@ -1,0 +1,96 @@
+---
+title: "Assignment 1"
+author: "Jinman Rong"
+date: "3/27/2020"
+output: html_document
+---
+
+```{r, include=FALSE}
+rm(list = ls())
+gc()
+```
+
+```{r, message=FALSE}
+library(data.table)
+library(dplyr)
+```
+
+```{r}
+# import data
+MCBS = read.csv("/Users/jemma/Desktop/Health analysis and data mining/2020 spring/session 1/MCBSpuf2016/puf2016.csv")
+```
+
+### Q6) Loneliness and health
+```{r}
+# filter data
+PoorFairHealth_t <- MCBS %>% filter(ADM_H_MEDSTA == 1) %>% filter(HLT_GENHELTH %in% c(4,5)) 
+GoodHealth_t <- MCBS %>% filter(ADM_H_MEDSTA == 1) %>% filter(HLT_GENHELTH %in% c(1,2,3)) 
+PoorFairHealth_WithFamily <- PoorFairHealth_t %>% filter(DEM_MARSTA == 1) %>% nrow()
+PoorFairHealth_LivingAlone <- PoorFairHealth_t %>% filter(DEM_MARSTA %in% c(2,3,4)) %>% nrow()
+GoodHealth_WithFamily <- GoodHealth_t %>% filter(DEM_MARSTA == 1) %>% nrow()
+GoodHealth_LivingAlone <- GoodHealth_t %>% filter(DEM_MARSTA %in% c(2,3,4)) %>% nrow()
+```
+
+```{r}
+# 2*2 x-tab
+table = rbind(c(PoorFairHealth_WithFamily, PoorFairHealth_LivingAlone), c(GoodHealth_WithFamily,GoodHealth_LivingAlone))
+rownames(table) = c("Poor Fair Health", "Good Health")
+colnames(table) = c("With Family", "Living Alone")
+table
+```
+
+```{r}
+fisher.test(table)
+```
+
+### Q7) Loneliness and risk of depression
+
+#### Method 1: Measure depression vs not depression as: HLT_OCDEPRSS == 1 vs. HLT_OCDEPRSS == 2
+```{r}
+# filter data
+Depression_t <- MCBS %>% filter(ADM_H_MEDSTA == 1) %>% filter(HLT_OCDEPRSS == 1) 
+NotDepression_t <- MCBS %>% filter(ADM_H_MEDSTA == 1) %>% filter(HLT_OCDEPRSS == 2) 
+
+Depression_WithFamily <- Depression_t %>% filter(DEM_MARSTA == 1) %>% nrow()
+Depression_Alone <- Depression_t %>% filter(DEM_MARSTA %in% c(2,3,4)) %>% nrow()
+
+NotDepression_WithFamily <- NotDepression_t %>% filter(DEM_MARSTA == 1) %>% nrow()
+NotDepression_Alone <- NotDepression_t %>% filter(DEM_MARSTA %in% c(2,3,4)) %>% nrow()
+```
+
+```{r}
+# 2*2 x-tab 
+table2 = rbind(c(Depression_WithFamily, Depression_Alone), c(NotDepression_WithFamily, NotDepression_Alone))
+colnames(table2) = c("With Family", "Living Alone")
+rownames(table2) = c("Depression", "Not Depression")
+table2
+```
+
+```{r}
+fisher.test(table2)
+```
+
+#### Method 2: Measure depression vs not depression as: HLT_OCDEPRSS == 1 vs. HLT_OCDEPRSS !=1
+```{r}
+# filter data 
+Depression_t <- MCBS %>% filter(ADM_H_MEDSTA == 1) %>% filter(HLT_OCDEPRSS == 1) 
+NotDepression_t_2 <- MCBS %>% filter(ADM_H_MEDSTA == 1) %>% filter(HLT_OCDEPRSS != 1) 
+
+Depression_WithFamily <- Depression_t %>% filter(DEM_MARSTA == 1) %>% nrow()
+Depression_Alone <- Depression_t %>% filter(DEM_MARSTA %in% c(2,3,4)) %>% nrow()
+
+NotDepression_WithFamily_2 <- NotDepression_t_2 %>% filter(DEM_MARSTA == 1) %>% nrow()
+NotDepression_Alone_2 <- NotDepression_t_2 %>% filter(DEM_MARSTA %in% c(2,3,4)) %>% nrow()
+```
+
+```{r}
+# 2*2 x-tab 
+table3 = rbind(c(Depression_WithFamily, Depression_Alone), c(NotDepression_WithFamily_2, NotDepression_Alone_2))
+colnames(table3) = c("With Family", "Living Alone")
+rownames(table3) = c("Depression", "Not Depression")
+table3
+```
+
+```{r}
+fisher.test(table3)
+```

@@ -1,0 +1,56 @@
+```{r}
+# Import required package
+library(data.table)
+```
+
+```{r}
+# Load .csv data file
+dt <- fread('puf2016.csv')
+
+# Drop rows with meanless values
+dt <- subset(dt, DEM_SEX %in% c(1,2))
+dt <- subset(dt, HLT_BMI_CAT %in% 1:5)
+dt <- subset(dt, HLT_OCDEPRSS %in% c(1,2))
+
+# Recode feature "HLT_BMI_CAT"
+set(dt, i = which(dt$HLT_BMI_CAT < 4), 'HLT_BMI_CAT', 2)
+set(dt, i = which(dt$HLT_BMI_CAT >= 4), 'HLT_BMI_CAT', 1)
+
+# Set columns for further analysis
+cols <- c('DEM_SEX', 'HLT_BMI_CAT', 'HLT_OCDEPRSS')
+
+# Segment data table into two subsets by gender
+dt.m <- subset(dt, DEM_SEX == 1)[, cols, with = F]
+dt.f <- subset(dt, DEM_SEX == 2)[, cols, with = F]
+```
+
+```{r}
+crosstab <- function(d) {
+  # Input: a data.table contains column HLT_BMI_CAT and column HLT_OCDEPRSS
+  # Output: a matrix format cross tabulation of HLT_BMI_CAT and HLT_OCDEPRSS
+  mat <- as.matrix(dcast(d, HLT_BMI_CAT ~ HLT_OCDEPRSS, length)[,2:3])
+  colnames(mat) <- c('depression', 'no depression')
+  rownames(mat) <- c('obesity', 'no obesity')
+  return(mat)
+}
+
+ma.m = crosstab(dt.m)
+ma.f = crosstab(dt.f)
+```
+
+```{r}
+# Construct a 3-D cross tabulation
+segment <- array(c(ma.m, ma.f),
+                 dim = c(2, 2, 2),
+                 dimnames = list(
+                    Obesity = c("Yes", "No"),
+                    Depression = c("Yes", "No"),
+                    Sex = c("M", "F")))
+segment
+```
+
+```{r}
+# Cochran–Mantel–Haenszel test
+mantelhaen.test(segment)
+```
+
