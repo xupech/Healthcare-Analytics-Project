@@ -1,0 +1,161 @@
+---
+title: "HospitalMonopoly"
+author: "Henry"
+date: "3/28/2020"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(reshape2)
+
+inpatient = read.csv("VTINP16_upd.TXT")
+RR_map = read.csv('RR_mapping.csv')
+hsa_map = read.csv('hsa_mapping.csv')
+mdc_map = read.csv('MDC_mapping.csv')
+```
+
+```{r}
+# preprocessing
+inpatient_RR = merge(inpatient, RR_map[c('hnum2', 'RR')])
+inpatient_RR = merge(inpatient_RR, hsa_map[c('HSA.Health.Service.Area', 'RR.Collapsed.Referral.Region')], by.x = 'hsa', by.y = 'HSA.Health.Service.Area')
+names(inpatient_RR)[names(inpatient_RR)=='RR'] = 'RR_destination'
+names(inpatient_RR)[names(inpatient_RR)=='RR.Collapsed.Referral.Region'] = 'RR_origin'
+
+inpatient_RR = inpatient_RR %>% filter(RR_origin %in% paste('RR', 1:5, sep = ''))
+```
+
+```{r}
+odmatrix_drg_count = function(inpatient_RR, drg, pay_type = NA) {
+  if(is.na(pay_type)) {
+    inpatient = inpatient_RR %>% filter(DRG == drg)
+  } else if(pay_type %in% c('g', 'c')) {
+    if(pay_type == 'g') inpatient = inpatient_RR %>% filter(DRG == drg) %>% filter(PPAY == 1)
+    if(pay_type == 'c') inpatient = inpatient_RR %>% filter(DRG == drg) %>% filter(PPAY == 6 | PPAY == 7)
+  } else {
+    stop('Invalid pay_type.')
+  }
+  
+  if(dim(inpatient)[1] == 0) return(NA)
+  
+  crosstab = dcast(inpatient, RR_origin ~ RR_destination, length)
+  crosstab = crosstab[!is.na(crosstab$RR_origin),]
+  
+  return(crosstab)
+}
+
+odmatrix_share = function(tab) {
+  if(is.na(tab)) return(NA)
+  
+  cols = paste('RR', 1:5, sep = '')
+  for (row in cols) {
+    if (!(row %in% tab$RR_origin)) tab[row, ] = c(row, rep(0, 5))
+  }
+  for (col in cols) {
+    if (!(col %in% colnames(tab))) tab[, col] = 0
+    tab[, col] = as.numeric(tab[, col])
+  }
+  
+  tab = tab[order(tab$RR_origin), c('RR_origin', cols)]
+  tab[6, cols] = apply(tab[, cols], 2, sum)
+  tab$RR_origin = c(cols, 'Total')
+
+  rownames(tab) <- NULL
+  
+  print(cbind(tab, Total = apply(tab[, cols], 1, sum)))
+  
+  tab$RR_origin = c(cols, 'Market share %')
+  
+  denom = apply(tab[, cols], 1, sum)
+  denom[denom == 0] = 1
+  tab[, cols] = tab[, cols] / denom
+  
+  for (col in cols) {
+    tab[, col] = sapply(tab[, col], function(x) paste(100*round(x, 4), '%', sep = ''))
+  }
+
+  print('\n')
+  print(tab)
+}
+
+odmatrix = function(inpatient_RR, drg, pay_type) {
+  odmatrix_share(odmatrix_drg_count(inpatient_RR, drg, pay_type))
+}
+
+HHI = function(tab) {
+  if(is.na(tab)) return(NA)
+  
+  cols = intersect(paste('RR', 1:5, sep = ''), colnames(tab))
+  if(length(cols) == 1) return(NA)
+  mkt_share = apply(tab[, cols], 2, sum) / sum(tab[, cols])
+  hhi = sum(mkt_share^2)
+  return(hhi)
+}
+```
+
+```{r}
+drg_map <- read.csv('DRG_mapping.csv')
+drg_map$MDC_NO = sapply(drg_map$MDC_NO, function(x) {
+  if(x %in% mdc_map$MDC) {
+    return(mdc_map[mdc_map$MDC == x, 'MDC_CAT_NAME'])
+  } else {
+    return(x)
+  }
+})
+colnames(drg_map) = c("MSDRG", "MDC", "MSDRG_DESC")
+drg = inpatient_RR %>% group_by(DRG) %>% tally()
+drg_map = merge(drg, drg_map, by.x = 'DRG', by.y = 'MSDRG')
+```
+
+```{r message = FALSE}
+drg_map$HHI_g = sapply(drg_map$DRG, function(x) HHI(odmatrix_drg_count(inpatient_RR, x, 'g')))
+drg_map$HHI_c = sapply(drg_map$DRG, function(x) HHI(odmatrix_drg_count(inpatient_RR, x, 'c')))
+rownames(drg_map) <- NULL
+drg_map$HHI_d = drg_map$HHI_c - drg_map$HHI_g
+```
+
+```{r}
+HHI_rank = drg_map[!is.na(drg_map$HHI_d), c('DRG', 'MDC', 'MSDRG_DESC', 'HHI_d', 'n')]
+HHI_rank = HHI_rank[order(HHI_rank$HHI_d), ]
+rownames(HHI_rank) = NULL
+HHI_rank = HHI_rank[HHI_rank$n > 500, ]
+HHI_rank = HHI_rank[HHI_rank$HHI_d > 0, ]
+HHI_rank
+```
+
+```{r}
+# DRG:        470
+# DRG_DESC:   Major joint replacement or reattachment of lower extremity w/o MCC
+# MDC:        MUSCULOSKELETAL
+# PAY:        GOVERNMENT
+# PATIENTS:   2151
+odmatrix(inpatient_RR, 470, 'g')
+```
+
+```{r}
+# DRG:        189
+# DRG_DESC:   Pulmonary edema & respiratory failure
+# MDC:        RESPIRATORY
+# PAY:        GOVERNMENT
+# PATIENTS:   594
+odmatrix(inpatient_RR, 189, 'g')
+```
+
+```{r}
+# DRG:        470
+# DRG_DESC:   Major joint replacement or reattachment of lower extremity w/o MCC
+# MDC:        MUSCULOSKELETAL
+# PAY:        COMMERCIAL
+# PATIENTS:   2151
+odmatrix(inpatient_RR, 470, 'c')
+```
+
+```{r}
+# DRG:        189
+# DRG_DESC:   Pulmonary edema & respiratory failure
+# MDC:        RESPIRATORY
+# PAY:        COMMERCIAL
+# PATIENTS:   594
+odmatrix(inpatient_RR, 189, 'c')
+```

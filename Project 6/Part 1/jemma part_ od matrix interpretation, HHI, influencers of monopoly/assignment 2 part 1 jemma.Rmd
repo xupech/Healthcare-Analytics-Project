@@ -1,0 +1,68 @@
+---
+title: "assignment 2 part1 jemma"
+author: "Jinman Rong"
+date: "3/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(dplyr)
+#install.packages("reshape2")
+library(reshape2)
+#install.packages("writexl")
+library(writexl)
+
+inpatient <- read.csv('/Users/jemma/Downloads/VTINP16_upd.csv')
+RR_map <- read.csv('/Users/jemma/Downloads/RR_mapping.csv')
+hsa_map <- read.csv('/Users/jemma/Downloads/hsa_mapping.csv')
+mdc_map <- read.csv('/Users/jemma/Downloads/MDC_mapping.csv')
+```
+
+```{r}
+# preprocessing
+inpatient_RR <- merge(inpatient, RR_map[c('hnum2', 'RR')])
+inpatient_RR <- merge(inpatient_RR, hsa_map[c('HSA.Health.Service.Area', 'RR.Collapsed.Referral.Region')], by.x = 'hsa', by.y = 'HSA.Health.Service.Area')
+names(inpatient_RR)[names(inpatient_RR)=='RR'] = 'RR_destination'
+names(inpatient_RR)[names(inpatient_RR)=='RR.Collapsed.Referral.Region'] = 'RR_origin'
+
+inpatient_RR <- inpatient_RR %>% filter(RR_origin %in% paste('RR', 1:5, sep = ''))
+```
+#### MDC monopoly in 5 RRs: HHI based on admissions
+```{r}
+# circulatory
+mdc_monopoly <- inpatient_RR %>% filter(RR_destination %in% c("RR1", "RR2", "RR3","RR4", "RR5")) %>% group_by(RR_destination) %>% count(hnum2)
+A = aggregate(n~RR_destination,data = mdc_monopoly,FUN="sum")
+mdc_monopoly =  merge(mdc_monopoly, A, by = "RR_destination")
+names(mdc_monopoly) = c("RR_destination","hum2","count","total")
+mdc_monopoly_1 <- mdc_monopoly %>% mutate(market_share = count/total)
+mdc_monopoly_2 <- mdc_monopoly_1 %>% arrange(RR_destination,desc(market_share))
+mdc_monopoly_2 # market share for each hospital
+write_xlsx(mdc_monopoly_2, "marketshare for each hospital records")
+mdc_monopoly_3 <- mdc_monopoly_2 %>% mutate(market_share_square = (market_share*100)^2)
+mdc_monopoly = aggregate(market_share_square~RR_destination,data = mdc_monopoly_3,FUN="sum") %>% arrange(desc(market_share_square))
+mdc_monopoly  # HHI index for each RR
+write_xlsx(mdc_monopoly, "marketshare for each RR records")
+```
+#### MDC monopoly in 5 RRs: HHI based on charges
+```{r}
+mdc_monopoly_charge = inpatient_RR %>% filter(RR_destination %in% c("RR1", "RR2", "RR3","RR4", "RR5")) %>% group_by(RR_destination)
+table_sum = aggregate(CHRGS~RR_destination, data = mdc_monopoly_charge,FUN = "sum")
+table2 = aggregate(CHRGS~hnum2, data = mdc_monopoly_charge,FUN = "sum")
+table_total = merge(table2, RR_map, by = "hnum2")
+table_all = select(table_total, -c(RRName,HospitalName))
+
+table_monopoly = merge(table_all,table_sum, by.x = "RR", by.y = "RR_destination")
+table_monopoly2 <- table_monopoly %>% mutate(charges_percentage = CHRGS.x/CHRGS.y) %>% mutate(charges_percentage_square = (100*charges_percentage)^2)
+table_marketshare_hospital = select(table_monopoly2, c(RR, hnum2, charges_percentage)) %>% arrange(RR,desc(charges_percentage))
+table_marketshare_hospital # market share for each hospital
+write_xlsx(table_marketshare_hospital, "marketshare for each hospital charges")
+
+table_monopoly_final = aggregate(charges_percentage_square~RR, data = table_monopoly2, FUN = "sum") %>% arrange(desc(charges_percentage_square))
+table_monopoly_final # HHI index for each RR
+write_xlsx(table_monopoly_final, "HHI index for each RR charges")
+```
+

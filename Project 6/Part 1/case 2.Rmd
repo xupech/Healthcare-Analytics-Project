@@ -1,0 +1,77 @@
+---
+title: "case 2"
+author: "ziyu"
+date: "3/29/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r loadlib, echo=T, results='hide', message=F, warning=F}
+library(ggplot2)
+library(tidyverse)
+library(reshape2)
+source("http://pcwww.liv.ac.uk/~william/R/crosstab.r")
+```
+
+
+```{r}
+inpatient = read.csv("VTINP16_upd.TXT")
+RR_map = read.csv('RR_mapping.csv')
+hsa_map = read.csv('hsa_mapping.csv')
+```
+
+
+```{r}
+# patient data in mdc==5,8; ppay== 1，6，7
+dta = inpatient[inpatient$PPAY==1|inpatient$PPAY==6|inpatient$PPAY==7,]
+dta = dta[dta$MDC==5|dta$MDC==8,]
+
+# merge RR into dataset
+dta = merge(dta,RR_map[c('hnum2','RRName')]) # RRName is destination
+dta = merge(dta,hsa_map[c('HSA.Health.Service.Area','RR.Name')],by.x = 'hsa', by.y = 'HSA.Health.Service.Area') # RR.Name is origin
+```
+
+
+```{r}
+#commercial * circulatory
+dta1 = dta[dta$MDC==5,]
+dta1 = dta1[dta1$PPAY==6|dta1$PPAY==7,]
+crosstab(dta1, row.vars = "RR.Name", col.vars = "RRName", type = "f")
+crosstab(dta1, row.vars = "RR.Name", col.vars = "RRName", type = "r")
+```
+
+
+```{r}
+#commercial * musculoskeletal
+dta2 = dta[dta$MDC==8,]
+dta2 = dta2[dta2$PPAY==6|dta2$PPAY==7,]
+crosstab(dta2, row.vars = "RR.Name", col.vars = "RRName", type = "f")
+crosstab(dta2, row.vars = "RR.Name", col.vars = "RRName", type = "r")
+```
+
+```{r}
+#government * circulatory
+dta3 = dta[dta$MDC==5,]
+dta3 = dta3[dta3$PPAY==1,]
+crosstab(dta3, row.vars = "RR.Name", col.vars = "RRName", type = "f")
+crosstab(dta3, row.vars = "RR.Name", col.vars = "RRName", type = "r")
+```
+
+
+```{r}
+#government * musculoskeletal
+dta4 = dta[dta$MDC==8,]
+dta4 = dta4[dta4$PPAY==1,]
+crosstab(dta4, row.vars = "RR.Name", col.vars = "RRName", type = "f")
+crosstab(dta4, row.vars = "RR.Name", col.vars = "RRName", type = "r")
+```
+
+
+
+
+
+
+
+
+

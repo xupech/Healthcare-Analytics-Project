@@ -1,0 +1,16 @@
+HSA Health Service Area ,HSA Name,RR Collapsed Referral Region,Name,RR Name
+1,Barre,RR2,Barre,RR2--Barre
+2,Burlington,RR1,Burlington,RR1--Burlington
+3,Morrisville,RR2,Barre,RR2--Barre
+4,Randolph,RR4,Randolph,RR4--Randolph
+5,Newport,RR3,Newport/St. Jns,RR3--Newport/St. Jns
+6,St. Johnsbury,RR3,Newport/St. Jns,RR3--Newport/St. Jns
+7,St. Albans,RR1,Burlington,RR1--Burlington
+8,Middlebury,RR1,Burlington,RR1--Burlington
+9,Rutland,RR5,Rutland,RR5--Rutland
+10,Bennington,RR5,Rutland,RR5--Rutland
+11,Springfield,RR4,Randolph,RR4--Randolph
+12,White River Jct.,RR4,Randolph,RR4--Randolph
+13,Brattleboro,RR4,Randolph,RR4--Randolph
+98,Out of state,Z_OutState,Z_OutState,Z_OutState
+99,Missing,,,
